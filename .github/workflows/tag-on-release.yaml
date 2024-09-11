@@ -4,7 +4,17 @@ on:
   push:
     branches:
       - release
+
+  # Add manual trigger
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag version (optional)"
+        required: false
+        default: ""  # Optional input for manually specifying a tag
+
 permissions: write-all
+
 jobs:
   tag:
     runs-on: ubuntu-latest
@@ -14,7 +24,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history so we can access tags
+          fetch-depth: 0  # Fetch all history to access tags
 
       # Get the latest tag, if any, and handle if no tags exist
       - name: Get the latest tag
@@ -34,30 +44,35 @@ jobs:
       - name: Calculate new tag
         id: calculate_tag
         run: |
-          latest_tag="${{ steps.get_latest_tag.outputs.tag }}"
-          # Remove 'v' prefix and extract version parts
-          version_without_v=${latest_tag#v}
-          IFS='.' read -r -a version_parts <<< "$version_without_v"
-          major="${version_parts[0]}"
-          minor="${version_parts[1]}"
-          patch="${version_parts[2]}"
+          # Use manually provided tag if specified
+          if [ "${{ github.event.inputs.tag }}" != "" ]; then
+            new_tag="${{ github.event.inputs.tag }}"
+          else
+            latest_tag="${{ steps.get_latest_tag.outputs.tag }}"
+            # Remove 'v' prefix and extract version parts
+            version_without_v=${latest_tag#v}
+            IFS='.' read -r -a version_parts <<< "$version_without_v"
+            major="${version_parts[0]}"
+            minor="${version_parts[1]}"
+            patch="${version_parts[2]}"
 
-          # Bump the patch version
-          new_patch=$((patch + 1))
-          new_tag="v${major}.${minor}.${new_patch}"
+            # Bump the patch version
+            new_patch=$((patch + 1))
+            new_tag="v${major}.${minor}.${new_patch}"
+          fi
 
           echo "New tag: $new_tag"
           echo "::set-output name=new_tag::$new_tag"
 
-      # Create and push the new tag to the repository using GITHUB_TOKEN
+      # Create and push the new tag to the repository
       - name: Create and push tag
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use the built-in GitHub token for authentication
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Create a new tag
+          # Create the new tag
           git tag ${{ steps.calculate_tag.outputs.new_tag }}
           
           # Push the new tag to the repository
