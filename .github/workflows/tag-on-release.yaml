@@ -14,13 +14,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Get the latest tag
+      # Get the latest tag, if any, and handle if no tags exist
       - name: Get the latest tag
         id: get_latest_tag
         run: |
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          if [ -z "$latest_tag" ]; then
-            latest_tag="v0.0.0" # Default to v0.0.0 if no tag exists
+          # Check if there are any tags in the repository
+          if git rev-list --tags --max-count=1; then
+            latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          else
+            latest_tag="v0.0.0" # Default to v0.0.0 if no tags exist
           fi
           echo "Latest tag: $latest_tag"
           echo "::set-output name=tag::$latest_tag"
