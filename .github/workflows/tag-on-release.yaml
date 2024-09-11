@@ -18,10 +18,11 @@ jobs:
       - name: Get the latest tag
         id: get_latest_tag
         run: |
-          # Check if there are any tags in the repository
-          if git rev-list --tags --max-count=1; then
-            latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          else
+          # Fetch all tags and get the latest one
+          latest_tag=$(git tag --sort=-creatordate | head -n 1)
+          
+          # Check if latest_tag is empty (i.e., no tags in the repository)
+          if [ -z "$latest_tag" ]; then
             latest_tag="v0.0.0" # Default to v0.0.0 if no tags exist
           fi
           echo "Latest tag: $latest_tag"
