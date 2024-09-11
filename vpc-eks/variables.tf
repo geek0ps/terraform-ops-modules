@@ -143,3 +143,9 @@ variable "access_entries" {
     }
   }
 }
+
+variable "create_cluster" {
+  type = bool
+  default = false
+  description = "To create cluster or not"
+}
