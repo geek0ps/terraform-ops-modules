@@ -19,6 +19,9 @@ jobs:
         id: get_latest_tag
         run: |
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          if [ -z "$latest_tag" ]; then
+            latest_tag="v0.0.0" # Default to v0.0.0 if no tag exists
+          fi
           echo "Latest tag: $latest_tag"
           echo "::set-output name=tag::$latest_tag"
 
@@ -26,19 +29,18 @@ jobs:
       - name: Calculate new tag
         id: calculate_tag
         run: |
-          if [ -z "${{ steps.get_latest_tag.outputs.tag }}" ]; then
-            new_tag="v1.0.0"
-          else
-            # Extract the version parts (assuming a version format like v1.2.3)
-            IFS='.' read -r -a version_parts <<< "${{ steps.get_latest_tag.outputs.tag#v }}"
-            major="${version_parts[0]}"
-            minor="${version_parts[1]}"
-            patch="${version_parts[2]}"
-            
-            # Bump the patch version
-            new_patch=$((patch + 1))
-            new_tag="v${major}.${minor}.${new_patch}"
-          fi
+          latest_tag="${{ steps.get_latest_tag.outputs.tag }}"
+          # Remove 'v' prefix and extract version parts
+          version_without_v=${latest_tag#v}
+          IFS='.' read -r -a version_parts <<< "$version_without_v"
+          major="${version_parts[0]}"
+          minor="${version_parts[1]}"
+          patch="${version_parts[2]}"
+
+          # Bump the patch version
+          new_patch=$((patch + 1))
+          new_tag="v${major}.${minor}.${new_patch}"
+
           echo "New tag: $new_tag"
           echo "::set-output name=new_tag::$new_tag"
 
