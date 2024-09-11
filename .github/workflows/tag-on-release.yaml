@@ -1,0 +1,51 @@
+name: Tag on Release Branch Merge
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Get the latest tag
+      - name: Get the latest tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "Latest tag: $latest_tag"
+          echo "::set-output name=tag::$latest_tag"
+
+      # Extract version number and bump the patch version
+      - name: Calculate new tag
+        id: calculate_tag
+        run: |
+          if [ -z "${{ steps.get_latest_tag.outputs.tag }}" ]; then
+            new_tag="v1.0.0"
+          else
+            # Extract the version parts (assuming a version format like v1.2.3)
+            IFS='.' read -r -a version_parts <<< "${{ steps.get_latest_tag.outputs.tag#v }}"
+            major="${version_parts[0]}"
+            minor="${version_parts[1]}"
+            patch="${version_parts[2]}"
+            
+            # Bump the patch version
+            new_patch=$((patch + 1))
+            new_tag="v${major}.${minor}.${new_patch}"
+          fi
+          echo "New tag: $new_tag"
+          echo "::set-output name=new_tag::$new_tag"
+
+      # Create and push the new tag to the repository
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.calculate_tag.outputs.new_tag }}
+          git push origin ${{ steps.calculate_tag.outputs.new_tag }}
