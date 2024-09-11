@@ -13,6 +13,8 @@ jobs:
       # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history so we can access tags
 
       # Get the latest tag, if any, and handle if no tags exist
       - name: Get the latest tag
@@ -54,5 +56,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create a new tag
           git tag ${{ steps.calculate_tag.outputs.new_tag }}
-          git push origin ${{ steps.calculate_tag.outputs.new_tag }}
+          
+          # Push the new tag to the repository
+          git push origin --tags
